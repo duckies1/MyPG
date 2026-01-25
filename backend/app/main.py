@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.routers import auth
 
-### Main Application File :- Initializes FastAPI app and includes routers .
+### Main Application File :- Initializes FastAPI app and includes routers
 
 app = FastAPI(title="MyPG Backend")
 
