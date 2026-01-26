@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from app.schemas.user import UserCreate, UserLogin
+from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.core.database import get_db
 from app.services.auth_service import signup_service, login_service
+from app.core.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -33,3 +35,14 @@ def login(user: UserLogin, response: Response, db: Session = Depends(get_db)):
     )
 
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(key="access_token", samesite="lax")
+    return {"message": "Logged out successfully"}
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user

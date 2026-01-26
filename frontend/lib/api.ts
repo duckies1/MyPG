@@ -1,0 +1,74 @@
+export type ApiError = { status: number; message: string };
+
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers || {})
+    },
+    credentials: 'include' // send/receive httpOnly cookie
+  });
+  if (!res.ok) {
+    let msg = 'Request failed';
+    try { msg = (await res.json()).detail || msg; } catch {}
+    throw { status: res.status, message: msg } as ApiError;
+  }
+  // Some endpoints return no body. Try json fallback
+  try { return await res.json(); } catch { return undefined as T; }
+}
+
+export const AuthApi = {
+  signup: (name: string, email: string, password: string) =>
+    apiFetch<{ access_token: string }>(`/auth/signup`, {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password })
+    }),
+  login: (email: string, password: string) =>
+    apiFetch<{ access_token: string; token_type: string }>(`/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    }),
+  logout: () =>
+    apiFetch<{ message: string }>(`/auth/logout`, {
+      method: 'POST'
+    }),
+  getMe: () =>
+    apiFetch<{ id: number; name: string; email: string; role: string }>(`/auth/me`)
+};
+
+export const PgApi = {
+  list: () => apiFetch<Array<{ id: number; name: string; address: string; admin_id: number }>>('/pg/get'),
+  create: (name: string, address: string) =>
+    apiFetch<{ id: number; name: string; address: string; admin_id: number }>(`/pg/create`, {
+      method: 'POST',
+      body: JSON.stringify({ name, address })
+    })
+};
+
+export const RoomApi = {
+  list: (pgId: number) => apiFetch<Array<{ id: number; pg_id: number; room_number: number }>>(`/rooms/${pgId}`),
+  create: (pgId: number, roomNumber: number) =>
+    apiFetch<{ id: number; pg_id: number; room_number: number }>(`/rooms/create`, {
+      method: 'POST',
+      body: JSON.stringify({ pg_id: pgId, room_number: roomNumber })
+    })
+};
+
+export const BedApi = {
+  list: (roomId: number) => apiFetch<Array<{ id: number; room_id: number; rent: number; is_occupied: boolean }>>(`/beds/${roomId}`),
+  create: (roomId: number, rent: number) =>
+    apiFetch<{ id: number; room_id: number; rent: number; is_occupied: boolean }>(`/beds/create`, {
+      method: 'POST',
+      body: JSON.stringify({ room_id: roomId, rent })
+    })
+};
+
+export const TenantApi = {
+  list: () => apiFetch<Array<{ id: number; user_id: number; bed_id: number; move_in_date: string }>>('/tenants/'),
+  create: (userId: number, bedId: number, moveInDate: string) =>
+    apiFetch<{ id: number; user_id: number; bed_id: number; move_in_date: string }>(`/tenants/create`, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, bed_id: bedId, move_in_date: moveInDate })
+    })
+};
