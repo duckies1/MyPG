@@ -21,3 +21,4 @@ def create_pg(db: Session, pg_data, current_user: User):
 def get_pgs(db: Session, current_user: User = None):
     if current_user and current_user.role == UserRole.ADMIN:
         return db.query(PG).filter(PG.admin_id == current_user.id).all()
+    return []
