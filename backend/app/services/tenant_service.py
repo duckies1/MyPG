@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from app.models.tenant import TenantProfile
 from app.models.bed import Bed
+from app.models.user import User
 
 def create_tenant(
     db: Session,
@@ -32,5 +33,7 @@ def create_tenant(
     return tenant
 
 
-def get_tenants(db: Session):
-    return db.query(TenantProfile).all()
+def get_tenants(db: Session, current_user: User = None):
+    if current_user:
+        return db.query(TenantProfile).filter(TenantProfile.user_id == current_user.id).all()
+    return []
