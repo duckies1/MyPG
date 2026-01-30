@@ -12,17 +12,19 @@ function Nav() {
   const [isChecking, setIsChecking] = useState(true);
   
   useEffect(() => {
-    // Check auth status on mount and when the route changes
-    AuthApi.getMe()
-      .then(() => {
+    // Check auth on mount and when pathname changes
+    const checkAuth = async () => {
+      try {
+        await AuthApi.getMe();
         setIsLoggedIn(true);
-        setIsChecking(false);
-      })
-      .catch(() => {
+      } catch {
         setIsLoggedIn(false);
+      } finally {
         setIsChecking(false);
-      });
-  }, [pathname]);
+      }
+    };
+    checkAuth();
+  }, [pathname]); // Recheck auth when route changes
   
   const handleSignOut = async () => {
     try {

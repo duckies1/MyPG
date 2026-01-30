@@ -24,5 +24,5 @@ def list_my_pgs(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    return get_pgs(db, current_user)   
+    return get_pgs(db, current_user)
 

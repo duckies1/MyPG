@@ -1,15 +1,25 @@
+'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { BedApi } from '../../../../lib/api';
+import { useParams } from 'next/navigation';
 
-type Params = { params: { roomId: string } };
-
-async function getBeds(roomId: number) {
-  try { return await BedApi.list(roomId); } catch { return []; }
-}
-
-export default async function BedsPage({ params }: Params) {
+export default function BedsPage() {
+  const params = useParams();
   const roomId = Number(params.roomId);
-  const beds = await getBeds(roomId);
+  const [beds, setBeds] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBeds = async () => {
+      try {
+        const data = await BedApi.list(roomId);
+        setBeds(data);
+      } catch {
+        setBeds([]);
+      }
+    };
+    fetchBeds();
+  }, [roomId]);
   return (
     <div>
       <div className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>

@@ -1,12 +1,22 @@
+'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { PgApi } from '../../lib/api';
 
-async function getPgs() {
-  try { return await PgApi.list(); } catch { return []; }
-}
+export default function PgListPage() {
+  const [pgs, setPgs] = useState<any[]>([]);
 
-export default async function PgListPage() {
-  const pgs = await getPgs();
+  useEffect(() => {
+    const fetchPgs = async () => {
+      try {
+        const data = await PgApi.list();
+        setPgs(data);
+      } catch {
+        setPgs([]);
+      }
+    };
+    fetchPgs();
+  }, []);
   return (
     <div>
       <div className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>

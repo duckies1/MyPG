@@ -1,12 +1,22 @@
+'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { TenantApi } from '../../lib/api';
 
-async function getTenants() {
-  try { return await TenantApi.list(); } catch { return []; }
-}
+export default function TenantsPage() {
+  const [tenants, setTenants] = useState<any[]>([]);
 
-export default async function TenantsPage() {
-  const tenants = await getTenants();
+  useEffect(() => {
+    const fetchTenants = async () => {
+      try {
+        const data = await TenantApi.list();
+        setTenants(data);
+      } catch {
+        setTenants([]);
+      }
+    };
+    fetchTenants();
+  }, []);
   return (
     <div>
       <div className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>

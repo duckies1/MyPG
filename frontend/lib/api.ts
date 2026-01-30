@@ -1,20 +1,22 @@
 export type ApiError = { status: number; message: string };
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`/api${path}`, {  // ← Must use /api prefix
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...(init?.headers || {})
     },
-    credentials: 'include' // send/receive httpOnly cookie
+    credentials: 'include',
+    cache: 'no-store' // included so that fetch always gets fresh data and doesn't resolve to rsc (react server component) cache. That may cause Next.js to resolve it to rsc and never actually send backend.
   });
+  
   if (!res.ok) {
     let msg = 'Request failed';
     try { msg = (await res.json()).detail || msg; } catch {}
     throw { status: res.status, message: msg } as ApiError;
   }
-  // Some endpoints return no body. Try json fallback
+  
   try { return await res.json(); } catch { return undefined as T; }
 }
 
@@ -65,7 +67,7 @@ export const BedApi = {
 };
 
 export const TenantApi = {
-  list: () => apiFetch<Array<{ id: number; user_id: number; bed_id: number; move_in_date: string }>>('/tenants/'),
+  list: () => apiFetch<Array<{ id: number; user_id: number; bed_id: number; move_in_date: string }>>('/tenants'),
   create: (userId: number, bedId: number, moveInDate: string) =>
     apiFetch<{ id: number; user_id: number; bed_id: number; move_in_date: string }>(`/tenants/create`, {
       method: 'POST',

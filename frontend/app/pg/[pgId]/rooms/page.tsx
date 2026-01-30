@@ -1,15 +1,25 @@
+'use client';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { RoomApi } from '../../../../lib/api';
+import { useParams } from 'next/navigation';
 
-type Params = { params: { pgId: string } };
-
-async function getRooms(pgId: number) {
-  try { return await RoomApi.list(pgId); } catch { return []; }
-}
-
-export default async function RoomsPage({ params }: Params) {
+export default function RoomsPage() {
+  const params = useParams();
   const pgId = Number(params.pgId);
-  const rooms = await getRooms(pgId);
+  const [rooms, setRooms] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const data = await RoomApi.list(pgId);
+        setRooms(data);
+      } catch {
+        setRooms([]);
+      }
+    };
+    fetchRooms();
+  }, [pgId]);
   return (
     <div>
       <div className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
