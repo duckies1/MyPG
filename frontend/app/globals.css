@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Sreda:wght@300;400;500;600;700&display=swap');
+
 * { box-sizing: border-box; }
 
 body { 
   margin: 0; 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif; 
+  font-family: 'Sreda', sans-serif; 
   background: #f3f4f8;
   background-image: radial-gradient(1200px circle at 50% -10%, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.14) 35%, rgba(243, 244, 248, 0) 70%);
   background-attachment: fixed;
@@ -494,6 +496,73 @@ tr:hover {
   color: #718096;
   font-size: 13px;
   margin-top: 40px;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(243, 244, 248, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+}
+
+.loading-spinner {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  animation: loading-rotate 1.6s linear infinite;
+}
+
+.loading-gif {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  animation: loading-rotate 2s linear infinite, loading-pop 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 6px 16px rgba(99, 102, 241, 0.25));
+}
+
+.loading-dot {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #111827;
+  box-shadow: 0 0 0 2px #fff inset;
+  --dot-transform: translateX(0);
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(1) { top: 0; left: 50%; --dot-transform: translateX(-50%); }
+.loading-dot:nth-child(2) { right: 0; top: 50%; --dot-transform: translateY(-50%); animation-delay: 0.15s; }
+.loading-dot:nth-child(3) { bottom: 0; left: 50%; --dot-transform: translateX(-50%); animation-delay: 0.3s; }
+.loading-dot:nth-child(4) { left: 0; top: 50%; --dot-transform: translateY(-50%); animation-delay: 0.45s; }
+
+.loading-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+@keyframes loading-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loading-pulse {
+  0%, 100% { transform: var(--dot-transform) scale(0.8); opacity: 0.6; }
+  50% { transform: var(--dot-transform) scale(1.15); opacity: 1; }
+}
+
+@keyframes loading-pop {
+  0%, 100% { transform: scale(0.85); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
 }
 
 /* Responsive */

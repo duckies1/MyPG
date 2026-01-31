@@ -1,6 +1,12 @@
 export type ApiError = { status: number; message: string };
 
+const dispatchLoading = (delta: number) => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('mypg-loading', { detail: { delta } }));
+};
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  dispatchLoading(1);
   const res = await fetch(`/api${path}`, {  // ← Must use /api prefix
     ...init,
     headers: {
@@ -9,7 +15,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     },
     credentials: 'include',
     cache: 'no-store' // included so that fetch always gets fresh data and doesn't resolve to rsc (react server component) cache. That may cause Next.js to resolve it to rsc and never actually send backend.
-  });
+  }).finally(() => dispatchLoading(-1));
   
   if (!res.ok) {
     let msg = 'Request failed';

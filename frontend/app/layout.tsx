@@ -1,6 +1,7 @@
 'use client';
 import './globals.css';
 import Link from 'next/link';
+import GlobalLoader from './components/GlobalLoader';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthApi } from '../lib/api';
 import { useEffect, useState } from 'react';
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <GlobalLoader />
         <Nav />
         <main className="container" style={{paddingTop: 24}}>
           {children}

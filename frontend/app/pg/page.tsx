@@ -31,9 +31,7 @@ export default function PgListPage() {
         <Link href="/pg/create" className="button" style={{alignSelf: 'flex-end'}}>+ Create PG</Link>
       </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : pgs.length === 0 ? (
+      {loading ? null : pgs.length === 0 ? (
         <div className="card" style={{textAlign: 'center', padding: 40}}>
           <p style={{fontSize: 16, color: '#718096'}}>No PGs yet. Create one to get started.</p>
           <Link href="/pg/create" className="button" style={{marginTop: 16, display: 'inline-block'}}>Create Your First PG</Link>
