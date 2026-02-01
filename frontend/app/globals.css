@@ -146,6 +146,8 @@ body {
   font-weight: 600;
   font-size: 14px;
   transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .button:hover {
@@ -161,6 +163,7 @@ body {
   background: #fff; 
   color: #6366f1;
   border: 1px solid #6366f1;
+  text-decoration: none;
 }
 
 .button.secondary:hover {

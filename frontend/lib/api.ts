@@ -73,9 +73,9 @@ export const BedApi = {
 };
 
 export const TenantApi = {
-  list: () => apiFetch<Array<{ id: number; user_id: number; bed_id: number; move_in_date: string }>>('/tenants'),
+  list: () => apiFetch<Array<{ id: number; user_id: number; bed_id: number; move_in_date: string; user_name: string; user_email: string; room_number: number; pg_name: string }>>('/tenants'),
   create: (userId: number, bedId: number, moveInDate: string) =>
-    apiFetch<{ id: number; user_id: number; bed_id: number; move_in_date: string }>(`/tenants/create`, {
+    apiFetch<{ id: number; user_id: number; bed_id: number; move_in_date: string; user_name: string; user_email: string; room_number: number; pg_name: string }>(`/tenants/create`, {
       method: 'POST',
       body: JSON.stringify({ user_id: userId, bed_id: bedId, move_in_date: moveInDate })
     })

@@ -11,6 +11,10 @@ class TenantOut(BaseModel):
     user_id: int
     bed_id: int
     move_in_date: date
+    user_name: str
+    user_email: str
+    room_number: int
+    pg_name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
