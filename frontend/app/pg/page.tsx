@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { PgApi, AuthApi } from '../../lib/api';
 import WaitScreen from '../components/WaitScreen';
+import { PageLoadingFallback } from '../components/LoadingFallback';
 
-export default function PgListPage() {
+function PgListContent() {
   const [pgs, setPgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingAccess, setCheckingAccess] = useState(true);
@@ -289,5 +290,13 @@ export default function PgListPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PgListPage() {
+  return (
+    <Suspense fallback={<PageLoadingFallback />}>
+      <PgListContent />
+    </Suspense>
   );
 }

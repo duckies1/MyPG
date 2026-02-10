@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { TenantApi, AuthApi } from '../../lib/api';
 import WaitScreen from '../components/WaitScreen';
+import { PageLoadingFallback } from '../components/LoadingFallback';
 
 type Tenant = {
   id: number;
@@ -15,13 +16,17 @@ type Tenant = {
   pg_name: string;
 };
 
-export default function TenantsPage() {
+const PAGE_SIZE = 50;
+
+function TenantsContent() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [userStatus, setUserStatus] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRowIds, setExpandedRowIds] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTenants, setTotalTenants] = useState(0);
 
   useEffect(() => {
     const checkAccessAndFetch = async () => {
@@ -37,16 +42,24 @@ export default function TenantsPage() {
         }
         
         // Fetch tenants (filtered by backend based on role)
-        const data = await TenantApi.list();
-        setTenants(data);
+        const data = await TenantApi.list(currentPage, PAGE_SIZE);
+        // Handle both paginated and non-paginated responses
+        if (Array.isArray(data)) {
+          setTenants(data);
+          setTotalTenants(data.length);
+        } else {
+          setTenants(data.items || []);
+          setTotalTenants(data.total || 0);
+        }
       } catch {
         setTenants([]);
+        setTotalTenants(0);
       } finally {
         setLoading(false);
       }
     };
     checkAccessAndFetch();
-  }, []);
+  }, [currentPage]);
 
   if (checkingAccess) {
     return null; // Loading...
@@ -57,16 +70,16 @@ export default function TenantsPage() {
     return <WaitScreen />;
   }
 
-  // Filter tenants based on search query
+  // Filter tenants based on search query (client-side, on current page)
   const filteredTenants = tenants.filter(t => 
     t.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.pg_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.move_in_date.includes(searchQuery)
   );
 
-  const totalTenants = tenants.length;
   const activeTenants = tenants.length;
   const leftTenants = 0;
+  const totalPages = Math.ceil(totalTenants / PAGE_SIZE);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -161,7 +174,7 @@ export default function TenantsPage() {
           {/* Results Count */}
           {filteredTenants.length !== tenants.length && (
             <p style={{fontSize: 13, color: '#718096', marginBottom: 16}}>
-              Showing {filteredTenants.length} of {tenants.length} tenants
+              Showing {filteredTenants.length} of {tenants.length} on page {currentPage} (Total: {totalTenants})
             </p>
           )}
 
@@ -240,8 +253,41 @@ export default function TenantsPage() {
               </p>
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div style={{marginTop: 24, display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center'}}>
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="button secondary"
+                style={{padding: '8px 16px', fontSize: 13}}
+              >
+                ← Previous
+              </button>
+              <span style={{fontSize: 13, color: '#718096'}}>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="button secondary"
+                style={{padding: '8px 16px', fontSize: 13}}
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+export default function TenantsPage() {
+  return (
+    <Suspense fallback={<PageLoadingFallback />}>
+      <TenantsContent />
+    </Suspense>
   );
 }

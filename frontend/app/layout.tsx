@@ -4,43 +4,46 @@ import Link from 'next/link';
 import GlobalLoader from './components/GlobalLoader';
 import { usePathname, useRouter } from 'next/navigation';
 import { AuthApi } from '../lib/api';
-import { useEffect, useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { prefetchData } from '../lib/prefetch';
+import { useCallback, useRef } from 'react';
 
 function Nav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { isLoggedIn, isChecking, userRole } = useAuth();
   
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await AuthApi.getMe();
-        setIsLoggedIn(true);
-        setUserRole(user.role);
-      } catch {
-        setIsLoggedIn(false);
-        setUserRole(null);
-      } finally {
-        setIsChecking(false);
-      }
-    };
-    checkAuth();
-  }, [pathname]);
+  // Track which prefetch calls are in flight to avoid duplicates
+  const prefetchInFlight = useRef<Set<string>>(new Set());
+  
+  const safePrefetch = useCallback((key: string, fn: () => Promise<void>) => {
+    if (prefetchInFlight.current.has(key)) {
+      return; // Already prefetching, skip
+    }
+    prefetchInFlight.current.add(key);
+    fn().finally(() => {
+      prefetchInFlight.current.delete(key);
+    });
+  }, []);
+
+  const handlePgHover = useCallback(() => {
+    safePrefetch('pgs', prefetchData.pgs);
+  }, [safePrefetch]);
+
+  const handleTenantsHover = useCallback(() => {
+    safePrefetch('tenants', prefetchData.tenants);
+  }, [safePrefetch]);
   
   const handleSignOut = async () => {
     try {
       await AuthApi.logout();
-      setIsLoggedIn(false);
       router.push('/login');
     } catch (err) {
       console.error('Logout failed:', err);
-      setIsLoggedIn(false);
       router.push('/login');
     }
   };
-  
+
   return (
     <header className="header">
       <nav className="nav">
@@ -52,9 +55,21 @@ function Nav() {
         {isLoggedIn && (
           <>
             {userRole === 'ADMIN' && (
-              <Link href="/pg" style={{color: pathname === '/pg' ? '#6366f1' : '#718096'}}>PGs</Link>
+              <Link 
+                href="/pg" 
+                style={{color: pathname === '/pg' ? '#6366f1' : '#718096'}}
+                onMouseEnter={handlePgHover}
+              >
+                PGs
+              </Link>
             )}
-            <Link href="/tenants" style={{color: pathname === '/tenants' ? '#6366f1' : '#718096'}}>Tenants</Link>
+            <Link 
+              href="/tenants" 
+              style={{color: pathname === '/tenants' ? '#6366f1' : '#718096'}}
+              onMouseEnter={handleTenantsHover}
+            >
+              Tenants
+            </Link>
           </>
         )}
         
@@ -81,14 +96,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <GlobalLoader />
-        <Nav />
-        <main className="container" style={{paddingTop: 24}}>
-          {children}
-        </main>
-        <footer className="footer">
-          © 2026 MyPG. Simplifying PG management.
-        </footer>
+        <AuthProvider>
+          <GlobalLoader />
+          <Nav />
+          <main className="container" style={{paddingTop: 24}}>
+            {children}
+          </main>
+          <footer className="footer">
+            © 2026 MyPG. Simplifying PG management.
+          </footer>
+        </AuthProvider>
       </body>
     </html>
   );

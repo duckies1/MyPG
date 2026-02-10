@@ -5,25 +5,63 @@ const dispatchLoading = (delta: number) => {
   window.dispatchEvent(new CustomEvent('mypg-loading', { detail: { delta } }));
 };
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  dispatchLoading(1);
-  const res = await fetch(`/api${path}`, {  // ← Must use /api prefix
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {})
-    },
-    credentials: 'include',
-    cache: 'no-store' // included so that fetch always gets fresh data and doesn't resolve to rsc (react server component) cache. That may cause Next.js to resolve it to rsc and never actually send backend.
-  }).finally(() => dispatchLoading(-1));
+// Request deduplication: store in-flight promises to avoid duplicate requests
+const inFlightRequests = new Map<string, Promise<any>>();
+
+async function apiFetch<T>(path: string, init?: RequestInit & { silent?: boolean }): Promise<T> {
+  const method = init?.method || 'GET';
+  const isGetRequest = method === 'GET';
+  const isSilent = init?.silent === true; // Don't show loading indicator for background prefetch
   
-  if (!res.ok) {
-    let msg = 'Request failed';
-    try { msg = (await res.json()).detail || msg; } catch {}
-    throw { status: res.status, message: msg } as ApiError;
+  // For GET requests, check if we already have an in-flight request
+  if (isGetRequest) {
+    const cacheKey = path;
+    if (inFlightRequests.has(cacheKey)) {
+      return inFlightRequests.get(cacheKey)!;
+    }
+  }
+
+  if (!isSilent) {
+    dispatchLoading(1);
   }
   
-  try { return await res.json(); } catch { return undefined as T; }
+  const requestPromise = (async () => {
+    const res = await fetch(`/api${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init?.headers || {})
+      },
+      credentials: 'include',
+      // Use better caching strategy: 
+      // - GET requests: cache for 60 seconds in browser
+      // - POST/DELETE: no cache (these modify data)
+      cache: isGetRequest ? 'default' : 'no-store',
+      next: isGetRequest ? { revalidate: 60 } : undefined // Cache for 60 seconds on server
+    });
+    
+    if (!res.ok) {
+      let msg = 'Request failed';
+      try { msg = (await res.json()).detail || msg; } catch {}
+      throw { status: res.status, message: msg } as ApiError;
+    }
+    
+    try { return await res.json(); } catch { return undefined as T; }
+  })().finally(() => {
+    if (!isSilent) {
+      dispatchLoading(-1);
+    }
+    // Clean up in-flight request after completion
+    if (isGetRequest) {
+      inFlightRequests.delete(path);
+    }
+  });
+
+  if (isGetRequest) {
+    inFlightRequests.set(path, requestPromise);
+  }
+
+  return requestPromise;
 }
 
 export const AuthApi = {
@@ -53,7 +91,7 @@ export const AuthApi = {
 };
 
 export const PgApi = {
-  list: () => apiFetch<Array<{ id: number; name: string; address: string; admin_id: number }>>('/pg/get'),
+  list: (options?: { silent?: boolean }) => apiFetch<Array<{ id: number; name: string; address: string; admin_id: number }>>('/pg/get', options),
   create: (name: string, address: string) =>
     apiFetch<{ id: number; name: string; address: string; admin_id: number }>(`/pg/create`, {
       method: 'POST',
@@ -76,7 +114,7 @@ export const RoomApi = {
 
 export const BedApi = {
   list: (roomId: number) => apiFetch<Array<{ id: number; room_id: number; rent: number; is_occupied: boolean }>>(`/beds/${roomId}`),
-  available: () => apiFetch<Array<{ bed_id: number; rent: number; room_id: number; room_number: number; pg_id: number; pg_name: string; pg_address: string }>>('/beds/available'),
+  available: (options?: { silent?: boolean }) => apiFetch<Array<{ bed_id: number; rent: number; room_id: number; room_number: number; pg_id: number; pg_name: string; pg_address: string }>>('/beds/available', options),
   create: (roomId: number, rent: number) =>
     apiFetch<{ id: number; room_id: number; rent: number; is_occupied: boolean }>(`/beds/create`, {
       method: 'POST',
@@ -89,8 +127,8 @@ export const BedApi = {
 };
 
 export const TenantApi = {
-  list: () => apiFetch<Array<{ id: number; user_id: number; bed_id: number; move_in_date: string; user_name: string; user_email: string; room_number: number; pg_name: string }>>('/tenants'),
-  unassigned: () => apiFetch<Array<{ id: number; name: string; email: string; role: string }>>('/tenants/unassigned'),
+  list: (page: number = 1, pageSize: number = 50, options?: { silent?: boolean }) => apiFetch<{ items: Array<{ id: number; user_id: number; bed_id: number; move_in_date: string; user_name: string; user_email: string; room_number: number; pg_name: string }>; total: number; page: number; page_size: number }>(`/tenants?page=${page}&page_size=${pageSize}`, options),
+  unassigned: (options?: { silent?: boolean }) => apiFetch<Array<{ id: number; name: string; email: string; role: string }>>('/tenants/unassigned', options),
   create: (userId: number, bedId: number, moveInDate: string) =>
     apiFetch<{ id: number; user_id: number; bed_id: number; move_in_date: string; user_name: string; user_email: string; room_number: number; pg_name: string }>(`/tenants/create`, {
       method: 'POST',

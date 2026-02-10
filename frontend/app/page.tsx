@@ -1,25 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { AuthApi } from '@/lib/api';
+import { useAuth } from './context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
+  const { isLoggedIn, isChecking } = useAuth();
   const router = useRouter();
 
+  // Redirect to PG page if already logged in
   useEffect(() => {
-    AuthApi.getMe()
-      .then(() => {
-        setIsLoggedIn(true);
-        // Optionally redirect to dashboard
-        router.push('/pg');
-      })
-      .catch(() => setIsLoggedIn(false))
-      .finally(() => setIsChecking(false));
-  }, [router]);
+    if (!isChecking && isLoggedIn) {
+      router.push('/pg');
+    }
+  }, [isLoggedIn, isChecking, router]);
 
   if (isChecking) {
     return null; // Or a loading spinner
