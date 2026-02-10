@@ -43,6 +43,8 @@ export const AuthApi = {
     }),
   getMe: () =>
     apiFetch<{ id: number; name: string; email: string; role: string }>(`/auth/me`),
+  getStatus: () =>
+    apiFetch<{ role: string; has_access: boolean; has_bed?: boolean; status: string; message?: string }>(`/auth/status`),
   generateInvite: (pgId: number) =>
     apiFetch<{ invite_code: string; pg_name: string }>('/auth/invite/generate', {
       method: 'POST',

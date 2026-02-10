@@ -11,14 +11,17 @@ function Nav() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        await AuthApi.getMe();
+        const user = await AuthApi.getMe();
         setIsLoggedIn(true);
+        setUserRole(user.role);
       } catch {
         setIsLoggedIn(false);
+        setUserRole(null);
       } finally {
         setIsChecking(false);
       }
@@ -48,7 +51,9 @@ function Nav() {
         
         {isLoggedIn && (
           <>
-            <Link href="/pg" style={{color: pathname === '/pg' ? '#6366f1' : '#718096'}}>PGs</Link>
+            {userRole === 'ADMIN' && (
+              <Link href="/pg" style={{color: pathname === '/pg' ? '#6366f1' : '#718096'}}>PGs</Link>
+            )}
             <Link href="/tenants" style={{color: pathname === '/tenants' ? '#6366f1' : '#718096'}}>Tenants</Link>
           </>
         )}

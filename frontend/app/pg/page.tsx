@@ -1,28 +1,58 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { PgApi, AuthApi } from '../../lib/api';
+import WaitScreen from '../components/WaitScreen';
 
 export default function PgListPage() {
   const [pgs, setPgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState<{ code: string; pgName: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchPgs = async () => {
+    const checkAccessAndFetch = async () => {
       try {
+        const status = await AuthApi.getStatus();
+        
+        // Tenants cannot access PG management
+        if (status.role === 'TENANT') {
+          setHasAccess(false);
+          setCheckingAccess(false);
+          // Redirect tenants to tenants page
+          router.push('/tenants');
+          return;
+        }
+        
+        setHasAccess(true);
+        setCheckingAccess(false);
+        
+        // Fetch PGs for admin
         const data = await PgApi.list();
         setPgs(data);
-      } catch {
+      } catch (err) {
+        setHasAccess(false);
         setPgs([]);
       } finally {
         setLoading(false);
+        setCheckingAccess(false);
       }
     };
-    fetchPgs();
-  }, []);
+    checkAccessAndFetch();
+  }, [router]);
+
+  if (checkingAccess) {
+    return null; // Loading...
+  }
+
+  if (!hasAccess) {
+    return <WaitScreen />;
+  }
 
   const handleGenerateInvite = async (pgId: number, pgName: string) => {
     try {

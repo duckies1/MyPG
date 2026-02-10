@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { TenantApi } from '../../lib/api';
+import { TenantApi, AuthApi } from '../../lib/api';
+import WaitScreen from '../components/WaitScreen';
 
 type Tenant = {
   id: number;
@@ -17,12 +18,25 @@ type Tenant = {
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [userStatus, setUserStatus] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRowIds, setExpandedRowIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    const fetchTenants = async () => {
+    const checkAccessAndFetch = async () => {
       try {
+        const status = await AuthApi.getStatus();
+        setUserStatus(status);
+        setCheckingAccess(false);
+        
+        // If tenant without bed, don't fetch tenants
+        if (status.role === 'TENANT' && !status.has_bed) {
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch tenants (filtered by backend based on role)
         const data = await TenantApi.list();
         setTenants(data);
       } catch {
@@ -31,8 +45,17 @@ export default function TenantsPage() {
         setLoading(false);
       }
     };
-    fetchTenants();
+    checkAccessAndFetch();
   }, []);
+
+  if (checkingAccess) {
+    return null; // Loading...
+  }
+
+  // Show wait screen for tenants without bed assignment
+  if (userStatus?.role === 'TENANT' && !userStatus?.has_bed) {
+    return <WaitScreen />;
+  }
 
   // Filter tenants based on search query
   const filteredTenants = tenants.filter(t => 
@@ -70,9 +93,13 @@ export default function TenantsPage() {
       <div className="page-header">
         <div className="page-header-left">
           <h2>Tenants</h2>
-          <p className="subtitle">Manage all your tenants across properties</p>
+          <p className="subtitle">
+            {userStatus?.role === 'TENANT' ? 'View tenants from your PG' : 'Manage all your tenants across properties'}
+          </p>
         </div>
-        <Link href="/tenants/create" className="button" style={{alignSelf: 'flex-end'}}>+ Add Tenant</Link>
+        {userStatus?.role === 'ADMIN' && (
+          <Link href="/tenants/create" className="button" style={{alignSelf: 'flex-end'}}>+ Add Tenant</Link>
+        )}
       </div>
 
       {/* Summary Cards */}

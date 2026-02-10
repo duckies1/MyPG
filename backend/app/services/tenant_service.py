@@ -92,19 +92,50 @@ def get_tenants(db: Session, current_user: User = None):
     if not current_user:
         return []
     
-    # Get all tenants from PGs administered by the current user
-    tenants = db.query(TenantProfile).join(
-        Bed, TenantProfile.bed_id == Bed.id
-    ).join(
-        Room, Bed.room_id == Room.id
-    ).join(
-        PG, Room.pg_id == PG.id
-    ).filter(
-        PG.admin_id == current_user.id
-    ).options(
-        joinedload(TenantProfile.user),
-        joinedload(TenantProfile.bed).joinedload(Bed.room).joinedload(Room.pg)
-    ).all()
+    # If user is admin, show all tenants from their PGs
+    if current_user.role == UserRole.ADMIN:
+        tenants = db.query(TenantProfile).join(
+            Bed, TenantProfile.bed_id == Bed.id
+        ).join(
+            Room, Bed.room_id == Room.id
+        ).join(
+            PG, Room.pg_id == PG.id
+        ).filter(
+            PG.admin_id == current_user.id
+        ).options(
+            joinedload(TenantProfile.user),
+            joinedload(TenantProfile.bed).joinedload(Bed.room).joinedload(Room.pg)
+        ).all()
+    
+    # If user is tenant with bed, show only tenants from same PG
+    elif current_user.role == UserRole.TENANT:
+        # First check if this tenant has a bed assigned
+        current_tenant = db.query(TenantProfile).filter(
+            TenantProfile.user_id == current_user.id
+        ).options(
+            joinedload(TenantProfile.bed).joinedload(Bed.room)
+        ).first()
+        
+        if not current_tenant:
+            # Tenant has no bed assigned, return empty list
+            return []
+        
+        # Get the PG ID for this tenant's bed
+        tenant_pg_id = current_tenant.bed.room.pg_id
+        
+        # Get all tenants from the same PG
+        tenants = db.query(TenantProfile).join(
+            Bed, TenantProfile.bed_id == Bed.id
+        ).join(
+            Room, Bed.room_id == Room.id
+        ).filter(
+            Room.pg_id == tenant_pg_id
+        ).options(
+            joinedload(TenantProfile.user),
+            joinedload(TenantProfile.bed).joinedload(Bed.room).joinedload(Room.pg)
+        ).all()
+    else:
+        return []
     
     # Transform ORM objects to TenantOut schema format
     return [

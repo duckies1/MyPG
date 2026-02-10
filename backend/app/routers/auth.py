@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from app.schemas.user import UserCreate, UserLogin, UserResponse, InviteGenerateRequest
 from app.core.database import get_db
-from app.services.auth_service import signup_service, login_service, generate_invite_code
+from app.services.auth_service import signup_service, login_service, generate_invite_code, get_user_status
 from app.core.auth import get_current_user
 from app.models.user import User
 
@@ -46,6 +46,10 @@ def logout(response: Response):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.get("/status")
+def get_status(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return get_user_status(db, current_user)
 
 @router.post("/invite/generate")
 def generate_invite(
