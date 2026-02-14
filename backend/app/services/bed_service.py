@@ -47,7 +47,19 @@ def create_bed(db: Session, rent, room_id: int):
     return bed
 
 def get_beds(db: Session, room_id: int):
-    return db.query(Bed).filter(Bed.room_id == room_id).all()
+    beds = db.query(Bed).filter(Bed.room_id == room_id).options(
+        joinedload(Bed.room)
+    ).all()
+    
+    return [
+        {
+            "id": bed.id,
+            "room_number": bed.room.room_number,
+            "rent": bed.rent,
+            "is_occupied": bed.is_occupied
+        }
+        for bed in beds
+    ]
 
 def delete_bed(db: Session, bed_id: int):
     bed = db.query(Bed).filter(Bed.id == bed_id).first()

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AuthApi } from '../../lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refreshAuth } = useAuth();
 
   useEffect(() => {
     AuthApi.getMe()
@@ -22,6 +24,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await AuthApi.login(email, password);
+      await refreshAuth(); // Refresh auth state immediately
       const redirect = searchParams.get('redirect') || '/pg';
       router.push(redirect);
     } catch (err: any) {

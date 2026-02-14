@@ -9,12 +9,17 @@ export default function BedsPage() {
   const roomId = Number(params.roomId);
   const [beds, setBeds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [roomNumber, setRoomNumber] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchBeds = async () => {
       try {
         const data = await BedApi.list(roomId);
         setBeds(data);
+        // Get room_number from first bed if available
+        if (data.length > 0) {
+          setRoomNumber(data[0].room_number);
+        }
       } catch {
         setBeds([]);
       } finally {
@@ -26,7 +31,7 @@ export default function BedsPage() {
   return (
     <div>
       <div className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-        <h2>Beds for Room {roomId}</h2>
+        <h2>Beds for Room {roomNumber ?? roomId}</h2>
         <Link className="button" href={`/rooms/${roomId}/beds/create`}>Add Bed</Link>
       </div>
       {loading ? (

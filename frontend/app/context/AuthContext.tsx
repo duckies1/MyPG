@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { AuthApi } from '../../lib/api';
 import { prefetchData } from '../../lib/prefetch';
 
@@ -7,6 +7,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isChecking: boolean;
   userRole: string | null;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,27 +17,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isChecking, setIsChecking] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Check auth only once on app mount
+  const refreshAuth = useCallback(async () => {
+    setIsChecking(true);
+    try {
+      const user = await AuthApi.getMe();
+      setIsLoggedIn(true);
+      setUserRole(user.role);
+      // Prefetch all data for authenticated user in background
+      prefetchData.allForAuth();
+    } catch {
+      setIsLoggedIn(false);
+      setUserRole(null);
+    } finally {
+      setIsChecking(false);
+    }
+  }, []);
+
+  // Check auth ONLY on mount (once per session)
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await AuthApi.getMe();
-        setIsLoggedIn(true);
-        setUserRole(user.role);
-        // Prefetch all data for authenticated user in background
-        prefetchData.allForAuth();
-      } catch {
-        setIsLoggedIn(false);
-        setUserRole(null);
-      } finally {
-        setIsChecking(false);
-      }
-    };
-    checkAuth();
-  }, []); // Only runs once!
+    refreshAuth();
+  }, [refreshAuth]);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, isChecking, userRole }}>
+    <AuthContext.Provider value={{ isLoggedIn, isChecking, userRole, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

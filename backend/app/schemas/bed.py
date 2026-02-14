@@ -6,7 +6,7 @@ class BedCreate(BaseModel):
     
 class BedResponse(BaseModel):
     id: int
-    room_id: int
+    room_number: int
     rent: float
     is_occupied: bool
 
