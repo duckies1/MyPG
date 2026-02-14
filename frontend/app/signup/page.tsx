@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AuthApi } from '../../lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -12,6 +13,7 @@ export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get('invite');
+  const { refreshAuth } = useAuth();
 
   useEffect(() => {
     AuthApi.getMe()
@@ -24,6 +26,7 @@ export default function SignupPage() {
     setError(null);
     try {
       await AuthApi.signup(name, email, password, inviteCode || undefined);
+      await refreshAuth();
       router.push('/login');
     } catch (err: any) {
       setError(err.message || 'Signup failed');
