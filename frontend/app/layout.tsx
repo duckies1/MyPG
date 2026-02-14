@@ -11,7 +11,7 @@ import { useCallback, useRef } from 'react';
 function Nav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isLoggedIn, isChecking, userRole } = useAuth();
+  const { isLoggedIn, isChecking, userRole, refreshAuth } = useAuth();
   
   // Track which prefetch calls are in flight to avoid duplicates
   const prefetchInFlight = useRef<Set<string>>(new Set());
@@ -37,9 +37,11 @@ function Nav() {
   const handleSignOut = async () => {
     try {
       await AuthApi.logout();
+      await refreshAuth(); // Refresh auth state immediately
       router.push('/login');
     } catch (err) {
       console.error('Logout failed:', err);
+      await refreshAuth(); // Refresh even on error
       router.push('/login');
     }
   };
